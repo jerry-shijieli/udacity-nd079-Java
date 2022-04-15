@@ -1,4 +1,5 @@
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
@@ -30,15 +31,25 @@ public final class UdacisearchClientFactory {
 
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
-      // TODO: Fill this method in!
-      return null;
+      String methodName = method.getName();
+      if (method.getDeclaringClass().equals(Object.class)) {
+        // Invoke toString() and hashCode() directly on the property Map.
+        try {
+          return method.invoke(properties, args);
+        } catch (InvocationTargetException e) {
+          throw e.getTargetException();
+        } catch (IllegalAccessException e) {
+          throw new RuntimeException(e);
+        }
+      }
+      if (methodName.length() <= 3 || !methodName.startsWith("get")) {
+        throw new RuntimeException("Method is not a property getter: " + methodName);
+      }
+      String propertyName = methodName.substring(3, 4).toLowerCase() + methodName.substring(4);
+      if (!properties.containsKey(propertyName)) {
+        throw new RuntimeException("No property named \"" + propertyName + "\" found in map.");
+      }
+      return properties.get(propertyName);
     }
-  }
-
-  private static String getPropertyName(String methodName) {
-    if (methodName.length() <= 3 || !methodName.startsWith("get")) {
-      return "";
-    }
-    return methodName.substring(3, 4).toLowerCase() + methodName.substring(4);
   }
 }
